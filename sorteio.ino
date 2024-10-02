@@ -79,6 +79,7 @@ const char* players[] = {
   "9        ",
   "10       ",  // 10
   "11       ",
+};/*
   "12       ",
   "13       ",
   "14       ",
@@ -204,7 +205,7 @@ const char* players[] = {
   "134",
   "135",  // 135
 };
-
+*/
 constexpr int kNumPlayers = sizeof(players) / sizeof(char*);
 
 struct Node {
@@ -267,8 +268,9 @@ struct List {
 int current_players = kNumPlayers;
 int current_group = -1;
 int display_group = 0;
-constexpr int kPlayersPerGroup = 4;
-constexpr int kNumGroups = (kNumPlayers / kPlayersPerGroup) + (kNumPlayers % kPlayersPerGroup ? 1 : 0);
+constexpr int kNumGroups = 3;//32;
+constexpr int kPlayersPerGroup = kNumPlayers / kNumGroups;
+constexpr int kNumGroupsWithOneMorePlayer = kNumPlayers % kNumGroups;
 
 List player_list;
 List groups[kNumGroups];
@@ -312,7 +314,11 @@ void GroupDrawAndUpdateDisplay() {
       return;
     }
     ++current_group;
-    for (int i = 0; i < kPlayersPerGroup && current_players > 0; ++i) {
+    int num_players = kPlayersPerGroup; 
+    if (current_group >= (kNumGroups - kNumGroupsWithOneMorePlayer)) {
+      ++num_players;
+    }
+    for (int i = 0; i < num_players && current_players > 0; ++i) {
       int pos = random(0, current_players);
       auto* current = player_list.head.after;
       for (int j = 0; j < pos && current->after != nullptr; ++j) {
