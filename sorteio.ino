@@ -4,9 +4,9 @@
 LiquidCrystal_I2C lcd(/*i2c address=*/0x27, /*columns=*/20, /*rows=*/4);
 
 // constants won't change. They're used here to set pin numbers:
-constexpr int buttonOnePin = 10;
+constexpr int drawButtonPin = 10;
 constexpr int buttonTwoPin = 12;
-constexpr int pausePin = 8;
+constexpr int backButtonPin = 8;
 constexpr int relayOnePin = 2;
 constexpr int relayTwoPin = 3;
 constexpr int screenGround = 18;
@@ -234,6 +234,10 @@ void PrintName(const char* name) {
   }
 }
 
+void PrintNameById(int id) {
+  PrintName(players[id]);
+}
+
 struct List {
   Node head;
   Node tail;
@@ -250,6 +254,7 @@ struct List {
     lcd.setCursor(column, row++);
     lcd.print("Group ");
     lcd.print(this->id);
+    lcd.print("             ");
     for (auto* n = head.after; n != &tail; n = n->after) {
       lcd.setCursor(column, row);
       if (column == 0) { column = 10; }
@@ -274,6 +279,29 @@ constexpr int kNumGroupsWithOneMorePlayer = kNumPlayers % kNumGroups;
 List player_list;
 List groups[kNumGroups];
 
+int kCilds = 43;
+
+void PrintDebugPage() {
+  int row = 0;
+  int column = 0;
+  lcd.clear();
+  lcd.setCursor(column, row++);
+  lcd.print("BavepToyama Debug XI");
+  lcd.setCursor(0, row++);
+  lcd.print("Seed: "); lcd.print(kCilds); lcd.print(", miss: ");
+  int missing_players = 0;
+  for (const auto* n = player_list.head.after; n != &player_list.tail; n = n->after) {
+    ++missing_players;
+  }
+  lcd.print(missing_players);
+  for (const auto* n = player_list.head.after; n != &player_list.tail; n = n->after) {
+    if (row < 4) {
+      lcd.setCursor(column, row++);
+      PrintNameById(n->index);  
+    }
+  }
+}
+
 void setup() {
   // initialize the LED pin as an output:
   pinMode(LED_BUILTIN, OUTPUT);
@@ -282,8 +310,9 @@ void setup() {
   pinMode(screenGround, OUTPUT);
   pinMode(screenPower, OUTPUT);
   // initialize the pushbutton pin as an input:
-  pinMode(buttonOnePin, INPUT);
+  pinMode(backButtonPin, INPUT);
   pinMode(buttonTwoPin, INPUT);
+  pinMode(backButtonPin, INPUT);
   if (debug) {
     Serial.begin(9600);
   }
@@ -305,13 +334,14 @@ void setup() {
   for (auto& group : groups) {
     group.Initialize(gid < kNumGroups - 1 ?'A' + gid++ : '!');
   }
-  randomSeed(43);
+  randomSeed(kCilds);
+  PrintDebugPage();
 }
 
-void GroupDrawAndUpdateDisplay() {
+bool GroupDrawAndUpdateDisplay() {
     if (current_group >= kNumGroups - 1) {
       // Final verification.
-      return;
+      return player_list.head.after = &player_list.tail;
     }
     ++current_group;
     int num_players = kPlayersPerGroup; 
@@ -332,6 +362,7 @@ void GroupDrawAndUpdateDisplay() {
     if (current_group == kNumGroups - 1) {
       digitalWrite(relayOnePin, LOW);
     }
+    return true;
 }
 
 void loop() {
@@ -339,15 +370,25 @@ void loop() {
   lcd.setBacklight(HIGH);
 
   bool pushed = false;
-  if (ReadButton(buttonOnePin)) {
+  if (ReadButton(drawButtonPin)) {
     pushed = true;    
-    GroupDrawAndUpdateDisplay();
+    if (!GroupDrawAndUpdateDisplay()) {
+      digitalWrite(relayTwoPin, LOW);
+    }
   } else if (ReadButton(buttonTwoPin)) {
     pushed = true;
-    display_group = (display_group + 1) % kNumGroups;
+    display_group = (display_group + 1) % (kNumGroups + 1);
+  } else if (ReadButton(backButtonPin)) {
+    pushed = true;
+    display_group = (display_group == 0) ? kNumGroups : display_group - 1;    
   }
-  groups[display_group].Print();
+
   if (pushed) {
+    if (display_group >= kNumGroups) {
+      PrintDebugPage();
+    } else {
+      groups[display_group].Print();
+    }
     delay(250);
   }
 }
