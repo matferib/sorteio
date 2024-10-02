@@ -79,7 +79,6 @@ const char* players[] = {
   "9        ",
   "10       ",  // 10
   "11       ",
-};/*
   "12       ",
   "13       ",
   "14       ",
@@ -205,7 +204,7 @@ const char* players[] = {
   "134",
   "135",  // 135
 };
-*/
+
 constexpr int kNumPlayers = sizeof(players) / sizeof(char*);
 
 struct Node {
@@ -268,7 +267,7 @@ struct List {
 int current_players = kNumPlayers;
 int current_group = -1;
 int display_group = 0;
-constexpr int kNumGroups = 3;//32;
+constexpr int kNumGroups = 32;
 constexpr int kPlayersPerGroup = kNumPlayers / kNumGroups;
 constexpr int kNumGroupsWithOneMorePlayer = kNumPlayers % kNumGroups;
 
@@ -311,6 +310,7 @@ void setup() {
 
 void GroupDrawAndUpdateDisplay() {
     if (current_group >= kNumGroups - 1) {
+      // Final verification.
       return;
     }
     ++current_group;
